@@ -8,7 +8,7 @@ const CONNECTION_KEY = "connection";
 const SNAPSHOT_KEY = "syncSnapshot";
 export const EXCLUDE_PATTERNS_KEY = "excludePatterns";
 // Text/binary classification and MIME types come from the table shared with
-// GemiHub web and Obsidian (gemihub-sync-core/files).
+// kiokuflow web and Obsidian (gemihub-sync-core/files).
 export function isTextPath(path: string): boolean { return !shouldTreatAsBinaryFile(path); }
 
 export function isBinaryPath(path: string): boolean { return shouldTreatAsBinaryFile(path); }
@@ -270,7 +270,7 @@ export class WorkspaceDriveSync {
   private session: Session | null = null;
   private sessionRefresh: Promise<Session> | null = null;
   constructor(private api: PluginAPI) {
-    if (!api.workspaceFiles || !api.storage || !api.network) throw new Error("This plugin requires Workspace files, storage, and network APIs from GemiHub Desktop.");
+    if (!api.workspaceFiles || !api.storage || !api.network) throw new Error("This plugin requires Workspace files, storage, and network APIs from kiokuflow Desktop.");
   }
 
   isUnlocked(): boolean { return this.session !== null; }
@@ -350,7 +350,7 @@ export class WorkspaceDriveSync {
     return Object.fromEntries(entries);
   }
 
-  /** Keep the chosen Drive identity; preserve all other copies in GemiHub trash. */
+  /** Keep the chosen Drive identity; preserve all other copies in kiokuflow trash. */
   async resolveDuplicate(group: DuplicateGroup, keepId: string): Promise<void> {
     const connection = await this.assertWorkspace();
     const session = await this.tokens();
@@ -480,7 +480,7 @@ export class WorkspaceDriveSync {
     const { session, inventory, baseline, remote, status } = await this.state();
     if (status.conflicts.length) throw new Error(`Resolve conflicts first: ${status.conflicts.map((conflict) => conflict.path).join(", ")}`);
     if (status.remoteChanges.length || status.remoteOnly.length || status.remoteDeletes.length) throw new Error("Google Drive has pending changes. Pull before pushing.");
-    if (status.localDeletes.length && !allowDeletes) throw new Error(`Push will move ${status.localDeletes.length} remote file(s) to GemiHub trash. Confirm deletion first.`);
+    if (status.localDeletes.length && !allowDeletes) throw new Error(`Push will move ${status.localDeletes.length} remote file(s) to kiokuflow trash. Confirm deletion first.`);
 
     // Re-list Drive once immediately before applying the batch. This catches
     // edits/deletes/moves made after state() without adding one request per file.
@@ -599,7 +599,7 @@ export class WorkspaceDriveSync {
 
   /**
    * Resolve conflicts per file by choosing the surviving side, the same way the
-   * GemiHub Obsidian plugin does: the losing side is backed up to the local,
+   * kiokuflow Obsidian plugin does: the losing side is backed up to the local,
    * sync-excluded `GemiHub/conflict-backups/` folder first.
    */
   async resolveConflicts(resolutions: Array<{ conflict: ConflictInfo; choice: "local" | "remote"; backup?: boolean }>): Promise<number> {
@@ -611,6 +611,7 @@ export class WorkspaceDriveSync {
     let touchedRemote = false;
     let resolved = 0;
     const resolvedConflicts: ConflictInfo[] = [];
+    // Keep the legacy path: gemihub-sync-core excludes it on every sync client.
     const backupDirectory = "GemiHub/conflict-backups";
 
     const readLocal = async (path: string): Promise<string | ArrayBuffer> => {

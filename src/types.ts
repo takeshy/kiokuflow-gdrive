@@ -34,7 +34,7 @@ export interface PluginAPI {
 export interface FileActionTarget { scope: "workspace" | "files"; path: string; name: string; isDirectory: boolean }
 export interface FileAction { id: string; label: string; when?(target: FileActionTarget): boolean; onClick(target: FileActionTarget): void | Promise<void> }
 
-// `_sync-meta.json` schema shared with GemiHub web and Obsidian.
+// `_sync-meta.json` schema shared with kiokuflow web and Obsidian.
 export type { FileSyncMeta, SyncMeta } from "gemihub-sync-core/protocol";
 export interface LocalSyncMeta {
   workspaceId: string;

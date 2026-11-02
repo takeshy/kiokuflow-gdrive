@@ -20,7 +20,7 @@ export interface StoredConnection {
 
 export interface Session { accessToken: string; refreshToken: string; apiOrigin: string; rootFolderId: string; expiryTime: number }
 
-// Token, _encrypted-auth.json and refresh formats are shared with GemiHub web
+// Token, _encrypted-auth.json and refresh formats are shared with kiokuflow web
 // and Obsidian (gemihub-sync-core/auth); only the transport lives here.
 export { decodeMigrationToken };
 
@@ -35,7 +35,7 @@ export async function createConnection(api: PluginAPI, token: string, workspace:
   const query = encodeURIComponent(`name='${ENCRYPTED_AUTH_FILE_NAME}' and '${temporary.rootFolderId}' in parents and trashed=false`);
   const listed = await driveJSON(api, `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id)&pageSize=1`, temporary.accessToken) as { files?: Array<{ id: string }> };
   const id = listed.files?.[0]?.id;
-  if (!id) throw new Error("_encrypted-auth.json was not found. Enable encryption in GemiHub, then generate a new sync token.");
+  if (!id) throw new Error("_encrypted-auth.json was not found. Enable encryption in kiokuflow, then generate a new sync token.");
   const response = await request(api, `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?alt=media`, { headers: { Authorization: `Bearer ${temporary.accessToken}` } });
   if (response.status !== 200) throw new Error(`Could not read encrypted authentication: HTTP ${response.status}`);
   const auth = parseEncryptedAuthFile(response.json);

@@ -7,7 +7,7 @@ import { createSyncMetaStore } from "gemihub-sync-core/sync-meta";
 import type { PluginAPI, SyncMeta } from "./types";
 
 // System names/folders, exclusion patterns and conflict names are shared with
-// GemiHub web and Obsidian through gemihub-sync-core.
+// kiokuflow web and Obsidian through gemihub-sync-core.
 export { SYNC_EXCLUDED_FILE_NAMES as SYSTEM_NAMES, SYNC_EXCLUDED_PREFIXES as SYSTEM_PREFIXES, isUserExcludedPath } from "gemihub-sync-core/paths";
 
 export type { DriveFile };
@@ -30,7 +30,7 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
 }
 
 // The Drive REST client (requests, retries, pagination, multipart, errors) is
-// shared with GemiHub web and Obsidian; Desktop's network API is the transport.
+// shared with kiokuflow web and Obsidian; Desktop's network API is the transport.
 const clients = new WeakMap<PluginAPI, ReturnType<typeof createDriveClient>>();
 
 function driveClient(api: PluginAPI) {
@@ -109,7 +109,7 @@ export function metaFromFiles(files: DriveFile[]): SyncMeta {
 
 /**
  * Treat the Drive folder listing as authoritative while retaining metadata
- * fields that are not returned by the listing request. GemiHub may briefly
+ * fields that are not returned by the listing request. kiokuflow may briefly
  * have duplicate or stale _sync-meta.json files after concurrent operations;
  * relying on one of those files alone hides newly-created and deleted files.
  */
@@ -128,7 +128,7 @@ function syncMetaStore(api: PluginAPI) {
 }
 
 /**
- * Registry reconciled with the root listing by the rules shared with GemiHub
+ * Registry reconciled with the root listing by the rules shared with kiokuflow
  * web and Obsidian: duplicate `_sync-meta.json` files are consolidated,
  * missing entries are verified by ID before removal, drifted entries adopt the
  * Drive state and untracked syncable files are registered. The result only
@@ -157,7 +157,7 @@ export async function writeSyncMeta(api: PluginAPI, accessToken: string, rootFol
       if (isGoogleWorkspaceFile(item)) nativeFiles[id] = item;
       else previousEntries[id] = item;
     }
-    // GemiHub keeps sharing state (shared/webViewLink/publicPath) only inside
+    // kiokuflow keeps sharing state (shared/webViewLink/publicPath) only inside
     // _sync-meta.json, so entries rebuilt from the Drive listing must carry the
     // current fields over.
     const files = Object.fromEntries(Object.entries(expected.files).map(([id, file]) => [id, { ...previousEntries[id], ...file }]));

@@ -4,7 +4,7 @@ import { DriveSyncView } from "./View";
 import { installDriveDecorations } from "./decorations";
 import { installDriveDiffActions } from "./DiffViewer";
 
-export default class GemiHubGoogleDrivePlugin {
+export default class KiokuflowGoogleDrivePlugin {
   private disposeDecorations: (() => void) | null = null;
   private disposeDiffActions: (() => void) | null = null;
   onload(api: PluginAPI) {

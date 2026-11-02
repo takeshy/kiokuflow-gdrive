@@ -104,7 +104,7 @@ export function DriveSyncView({ api }: { api: PluginAPI }) {
   }, [client]);
 
   if (typeof client === "string") return <section className="gdrive-sync">
-    <header><span className="gdrive-logo">G</span><div><strong>Google Drive Sync</strong><small>GemiHub-compatible Workspace sync</small></div></header>
+    <header><span className="gdrive-logo">G</span><div><strong>Google Drive Sync</strong><small>kiokuflow-compatible Workspace sync</small></div></header>
     <p className="gdrive-message danger">{client}</p>
   </section>;
 
@@ -135,7 +135,7 @@ export function DriveSyncView({ api }: { api: PluginAPI }) {
   const push = async () => {
     const next = await client.status(); setDuplicates([]); setStatus(next);
     const deletions = next.localDeletes.length;
-    if (deletions && !window.confirm(`Push will move ${deletions} file(s) to GemiHub trash. Continue?`)) return;
+    if (deletions && !window.confirm(`Push will move ${deletions} file(s) to kiokuflow trash. Continue?`)) return;
     showToast(`Push complete: ${summary(await client.push(deletions > 0))}`);
     setStatus(await client.status()); setPreview(null); setStatDetail(null);
     await refreshDriveDecorations(api);
@@ -172,21 +172,21 @@ export function DriveSyncView({ api }: { api: PluginAPI }) {
   };
 
   return <section className="gdrive-sync">
-    <header><span className="gdrive-logo">G</span><div><strong>Google Drive Sync</strong><small>GemiHub-compatible Workspace sync</small></div></header>
+    <header><span className="gdrive-logo">G</span><div><strong>Google Drive Sync</strong><small>kiokuflow-compatible Workspace sync</small></div></header>
     {!connection ? <div className="gdrive-form">
-      <p>GemiHubで暗号化を有効にし、設定 → 同期 → 外部同期から同期トークンを生成してください。現在選択中のWorkspace全体がこの接続に固定されます。</p>
-      <label><span>GemiHub sync token</span><textarea rows={5} value={token} onChange={(event) => setToken(event.target.value)} disabled={busy} /></label>
+      <p>kiokuflowで暗号化を有効にし、設定 → 同期 → 外部同期から同期トークンを生成してください。現在選択中のWorkspace全体がこの接続に固定されます。</p>
+      <label><span>kiokuflow sync token</span><textarea rows={5} value={token} onChange={(event) => setToken(event.target.value)} disabled={busy} /></label>
       <button type="button" disabled={busy || !token.trim()} onClick={() => void run(async () => { const saved = await client.setup(token); setConnection(saved); setToken(""); setMessage(`Connected to Workspace “${saved.workspace.name}”.`); })}>Connect Workspace</button>
     </div> : !unlocked ? <div className="gdrive-form">
       <p>接続先Workspace: <strong>{connection.workspace.name}</strong></p>
-      <label><span>GemiHub encryption password</span><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} /></label>
+      <label><span>kiokuflow encryption password</span><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} /></label>
       <button type="button" disabled={busy || !password} onClick={() => void run(async () => { await client.unlock(password); setPassword(""); setUnlocked(true); setMessage("Drive connection unlocked for this session."); })}>Unlock</button>
       <button type="button" className="secondary" disabled={busy} onClick={() => void run(async () => { await client.reset(); setConnection(null); setStatus(null); showToast("Connection reset."); })}>Reset connection</button>
     </div> : <div className="gdrive-actions">
       <div className="gdrive-workspace"><span>Workspace</span><strong>{connection.workspace.name}</strong><small>{connection.workspace.path}</small></div>
       {duplicates.length ? <div className="gdrive-preview gdrive-conflicts">
         <div className="gdrive-preview-header"><strong>Duplicate Drive paths</strong><span>{duplicates.length} path(s)</span></div>
-        <p>各コピーを確認して、元のパスに残すファイルを選んでください。他のコピーは復元可能なGemiHubのtrashへ移動します。ローカルの内容は変更しません。</p>
+        <p>各コピーを確認して、元のパスに残すファイルを選んでください。他のコピーは復元可能なkiokuflowのtrashへ移動します。ローカルの内容は変更しません。</p>
         {duplicates.map((group) => <div key={group.path}>
           <strong>{group.path}</strong>
           <button type="button" className="secondary" disabled={busy} onClick={() => void run(async () => {
@@ -258,7 +258,7 @@ export function DriveSyncView({ api }: { api: PluginAPI }) {
         <button type="button" disabled={busy || !!preview} onClick={() => void run(() => prepare("pull"))}>Pull</button>
         <button type="button" disabled={busy || !!preview} onClick={() => void run(() => prepare("push"))}>Push</button>
       </div>
-      <small>GemiHubと同じ `_sync-meta.json` を使用します。初回に両側へ異なるファイルがある場合は Pull → Push の順で統合してください。</small>
+      <small>kiokuflowと同じ `_sync-meta.json` を使用します。初回に両側へ異なるファイルがある場合は Pull → Push の順で統合してください。</small>
     </div>}
     {busy && <p className="gdrive-message">{progress ? `${progress.phase === "pull" ? "Pull" : progress.phase === "delete" ? "Delete" : "Snapshot"} ${progress.completed} / ${progress.total}${progress.path ? `: ${progress.path}` : ""}` : "Working…"}</p>}
     {message && <p className="gdrive-message">{message}</p>}

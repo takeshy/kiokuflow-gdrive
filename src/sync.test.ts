@@ -18,7 +18,7 @@ Deno.test("finds local files that need to be pushed for FileTree decorations", (
 });
 
 Deno.test("classifies only known text extensions as text", () => {
-  // Shared GemiHub rule: extensionless files are text, SVG is an image.
+  // Shared kiokuflow rule: extensionless files are text, SVG is an image.
   for (const path of ["notes/readme.md", "data/view.yaml", "boards/work.dashboard", "scores/song.audioscore", "src/main.tsx", "unknown"]) {
     assertEquals(isTextPath(path), true, path);
     assertEquals(isBinaryPath(path), false, path);

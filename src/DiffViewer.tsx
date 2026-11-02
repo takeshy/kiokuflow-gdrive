@@ -8,6 +8,7 @@ import { showToast } from "./toast";
 
 type DiffViewMode = "unified" | "split";
 export type DriveDiffDirection = "local-to-drive" | "drive-to-local";
+// Preserve the existing preference across the plugin rename.
 const DIFF_VIEW_MODE_KEY = "gemihub-gdrive:diff-view-mode";
 
 function savedDiffViewMode(): DiffViewMode {

@@ -27,7 +27,7 @@ export function DriveSyncSettings({ api }: { api: PluginAPI }) {
         <span>除外パターン</span>
         <textarea rows={6} value={patterns} onChange={(event) => setPatterns(event.target.value)} placeholder={"node_modules/\n*.tmp"} />
       </label>
-      <small>1行に1パターン。末尾に `/` を付けるとフォルダごと除外します（例: `drafts/`）。`*`（任意の文字列）と `?`（任意の1文字）はワイルドカードとして使えます。`.git/`、`node_modules/`、GemiHubのsystem files/foldersは常に除外されます。</small>
+      <small>1行に1パターン。末尾に `/` を付けるとフォルダごと除外します（例: `drafts/`）。`*`（任意の文字列）と `?`（任意の1文字）はワイルドカードとして使えます。`.git/`、`node_modules/`、kiokuflowのsystem files/foldersは常に除外されます。</small>
       <button type="button" onClick={() => void save()}>{saved ? "保存しました" : "保存"}</button>
     </div>
   </section>;

@@ -17,7 +17,7 @@ function base64Buffer(value: string): ArrayBuffer {
 export interface TransportResponse extends HTTPResponse { text: string; json: unknown; arrayBuffer: ArrayBuffer }
 
 export async function request(api: PluginAPI, url: string, options: { method?: string; headers?: Record<string, string>; body?: string | ArrayBuffer } = {}): Promise<TransportResponse> {
-  if (!api.network) throw new Error("This plugin requires the network permission and a compatible GemiHub Desktop version.");
+  if (!api.network) throw new Error("This plugin requires the network permission and a compatible kiokuflow Desktop version.");
   const response = await api.network.request({
     url,
     method: options.method ?? "GET",
