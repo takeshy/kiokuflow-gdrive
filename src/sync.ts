@@ -3,6 +3,7 @@ import { conflictBackupName, createRemote, ensureFolder, isUserExcludedPath, lis
 import { guessMimeType, shouldTreatAsBinaryFile } from "gemihub-sync-core/files";
 import { duplicateRemotePaths as coreDuplicateRemotePaths, syncMetaSnapshotChanged } from "gemihub-sync-core/protocol";
 import type { ConflictInfo, FileSyncMeta, LocalSyncMeta, PluginAPI, Workspace, WorkspaceFile, SyncMeta, SyncProgress, SyncStatus, SyncSummary, WorkspaceFilesAPI } from "./types";
+import { BACKUP_DIRECTORY, WORKSPACE_FOLDER, workspaceInventory } from "./workspace";
 
 const CONNECTION_KEY = "connection";
 const SNAPSHOT_KEY = "syncSnapshot";
@@ -324,7 +325,7 @@ export class WorkspaceDriveSync {
   }
   private async inventory(): Promise<WorkspaceFile[]> {
     const patterns = await this.excludePatterns();
-    return (await (await this.workspaceFiles()).inventory()).filter((file) => syncablePath(file.path) && !isUserExcludedPath(file.path, patterns));
+    return (await workspaceInventory(await this.workspaceFiles())).filter((file) => syncablePath(file.path) && !isUserExcludedPath(file.path, patterns));
   }
   private async state(): Promise<{ session: Session; inventory: WorkspaceFile[]; baseline: LocalSyncMeta; remote: SyncMeta; status: SyncStatus }> {
     const connection = await this.assertWorkspace();
@@ -539,6 +540,51 @@ export class WorkspaceDriveSync {
     return summary;
   }
 
+  /** Make syncable local files match Drive, rebuilding identities after migration. */
+  async fullPull(allowDeletes = false, onProgress?: (progress: SyncProgress) => void): Promise<SyncSummary> {
+    const connection = await this.assertWorkspace();
+    const files = await this.workspaceFiles(connection.workspace);
+    const { inventory, remote } = await this.state();
+    const caseInsensitive = isWindowsWorkspace(connection.workspace);
+    const key = (path: string) => pathKey(path, caseInsensitive);
+    const localByPath = new Map(inventory.map(file => [key(file.path), file]));
+    const remotePaths = new Set(Object.values(remote.files).map(file => key(file.name)));
+    const deletes = inventory.filter(file => !remotePaths.has(key(file.path)));
+    if (deletes.length && !allowDeletes) throw new Error(`Full pull will delete ${deletes.length} local file(s). Confirm deletion first.`);
+    const summary: SyncSummary = { created: 0, updated: 0, renamed: 0, deleted: 0, skipped: 0 };
+    const entries = Object.entries(remote.files);
+    let completed = 0;
+    onProgress?.({ phase: "pull", completed, total: entries.length });
+    await parallelForEach(entries, async ([id, file]) => {
+      try {
+        const local = localByPath.get(key(file.name));
+        if (local && file.md5Checksum && local.md5 === file.md5Checksum) summary.skipped++;
+        else {
+          const session = await this.tokens();
+          const content = await readRemote(this.api, session.accessToken, id);
+          const value = isBinaryPath(file.name) ? content.buffer : content.text;
+          if (local) { await files.update(local.path, value); summary.updated++; }
+          else { await files.create(file.name, value); summary.created++; }
+        }
+        completed++;
+        onProgress?.({ phase: "pull", completed, total: entries.length, path: file.name });
+      } catch (error) {
+        throw new Error(`Full pull failed for ${file.name}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    });
+    // A failed download never proceeds to deletion or replaces the baseline.
+    let deleted = 0;
+    onProgress?.({ phase: "delete", completed: deleted, total: deletes.length });
+    for (const file of deletes) {
+      await files.delete(file.path); summary.deleted++; deleted++;
+      onProgress?.({ phase: "delete", completed: deleted, total: deletes.length, path: file.path });
+    }
+    onProgress?.({ phase: "snapshot", completed: 0, total: 1 });
+    await this.saveSnapshot(connection.workspace, remote, await this.inventory(), emptySnapshot(connection.workspace.id));
+    onProgress?.({ phase: "snapshot", completed: 1, total: 1 });
+    return summary;
+  }
+
   async pull(allowDeletes = false, onProgress?: (progress: SyncProgress) => void): Promise<SyncSummary> {
     const connection = await this.assertWorkspace();
     const workspaceFiles = await this.workspaceFiles(connection.workspace);
@@ -600,7 +646,7 @@ export class WorkspaceDriveSync {
   /**
    * Resolve conflicts per file by choosing the surviving side, the same way the
    * kiokuflow Obsidian plugin does: the losing side is backed up to the local,
-   * sync-excluded `GemiHub/conflict-backups/` folder first.
+   * sync-excluded `KiokuFlow/conflict-backups/` folder first.
    */
   async resolveConflicts(resolutions: Array<{ conflict: ConflictInfo; choice: "local" | "remote"; backup?: boolean }>): Promise<number> {
     const connection = await this.assertWorkspace();
@@ -611,8 +657,7 @@ export class WorkspaceDriveSync {
     let touchedRemote = false;
     let resolved = 0;
     const resolvedConflicts: ConflictInfo[] = [];
-    // Keep the legacy path: gemihub-sync-core excludes it on every sync client.
-    const backupDirectory = "GemiHub/conflict-backups";
+    const backupDirectory = BACKUP_DIRECTORY;
 
     const readLocal = async (path: string): Promise<string | ArrayBuffer> => {
       const raw = await files.read(path);
@@ -626,7 +671,7 @@ export class WorkspaceDriveSync {
     const saveLocalBackup = async (path: string, value: string | ArrayBuffer): Promise<void> => {
       // Backups are deliberately local and excluded from sync. A sequence
       // suffix prevents two resolutions in the same millisecond overwriting.
-      await files.createDirectory("GemiHub").catch(() => undefined);
+      await files.createDirectory(WORKSPACE_FOLDER).catch(() => undefined);
       await files.createDirectory(backupDirectory).catch(() => undefined);
       const base = conflictBackupName(path, new Date());
       const dot = base.lastIndexOf(".");

@@ -1,8 +1,11 @@
 /// <reference lib="deno.ns" />
 import { assertEquals, assertRejects, assertThrows } from "jsr:@std/assert";
 import { assertCurrentDuplicate, duplicateRemoteGroups, DuplicateRemoteError, WorkspaceDriveSync, adoptResolvedConflicts, computeLocalChangePaths, computeSnapshot, computeStatus, duplicateRemotePaths, isBinaryPath, isTextPath, parallelForEach, planPush, remoteSnapshotChanged, unresolvedBaselineEntries } from "./sync.ts";
-import { isGoogleWorkspaceFile, reconcileSyncMeta, syncableDriveFile } from "./drive.ts";
+import { isGoogleWorkspaceFile, reconcileSyncMeta, syncableDriveFile, syncablePath } from "./drive.ts";
 import type { HTTPResponse, PluginAPI, LocalSyncMeta, WorkspaceFile, SyncMeta } from "./types.ts";
+
+import { md5Hash } from "gemihub-sync-core/hash";
+import { workspaceInventory } from "./workspace.ts";
 
 const local = (path: string, md5: string): WorkspaceFile => ({ path, md5, size: 1, createdTime: 0, modTime: 0, binary: false });
 const baseline = (md5 = "a"): LocalSyncMeta => ({ workspaceId: "p", lastUpdatedAt: "", files: { id: { name: "notes/a.md", md5Checksum: md5 } }, pathToId: { "notes/a.md": "id" } });
@@ -418,4 +421,148 @@ Deno.test("duplicate resolution previews all copies, archives only losers, and p
   const status = await client.status();
   assertEquals(status.conflicts.map(({ id, kind }) => ({ id, kind })), [{ id: "id", kind: "edit" }]);
   assertEquals(status.remoteDeletes, []);
+});
+
+function forcePullFixture(initial: Record<string, string | ArrayBuffer>, remoteFiles: Record<string, { path: string; content: string | ArrayBuffer; checksum?: boolean }>, windows = false) {
+  const contents = new Map(Object.entries(initial));
+  const workspace = { id: "p", name: "test", path: windows ? "C:/test" : "/test" };
+  const stored: Record<string, unknown> = { syncSnapshot: baseline() };
+  const reads: string[] = [], writes: string[] = [], deleted: string[] = [];
+  const hash = (content: string | ArrayBuffer) => md5Hash(new Uint8Array(typeof content === "string" ? new TextEncoder().encode(content).buffer : content));
+  const inventory = () => Promise.resolve([...contents].map(([path, content]) => ({ ...local(path, hash(content)), binary: typeof content !== "string" })));
+  const currentRemote: SyncMeta = { lastUpdatedAt: "new", files: Object.fromEntries(Object.entries(remoteFiles).map(([id, file]) => [id, {
+    name: file.path, md5Checksum: file.checksum === false ? "" : hash(file.content), mimeType: typeof file.content === "string" ? "text/markdown" : "image/png", modifiedTime: "new",
+  }])) };
+  let failId: string | null = null;
+  const files = {
+    current: () => Promise.resolve(workspace), inventory,
+    read: (path: string) => {
+      const content = contents.get(path);
+      if (content === undefined) return Promise.reject(new Error("missing"));
+      return Promise.resolve(typeof content === "string" ? content : `data:application/octet-stream;base64,${btoa(String.fromCharCode(...new Uint8Array(content)))}`);
+    },
+    create: (path: string, content: string | ArrayBuffer) => { writes.push(path); contents.set(path, content); return Promise.resolve(); },
+    update: (path: string, content: string | ArrayBuffer) => { writes.push(path); contents.set(path, content); return Promise.resolve(); },
+    createDirectory: (_path: string) => Promise.resolve(),
+    rename: (source: string, destination: string) => {
+      if (contents.has(destination)) return Promise.reject(new Error("target already exists"));
+      const content = contents.get(source);
+      if (content === undefined) return Promise.reject(new Error("missing"));
+      contents.set(destination, content); contents.delete(source); return Promise.resolve();
+    },
+    delete: (path: string) => {
+      if ([...contents.keys()].some(child => child.startsWith(path + "/"))) return Promise.reject(new Error("not empty"));
+      deleted.push(path); contents.delete(path); return Promise.resolve();
+    },
+  };
+  const api = {
+    language: "en", registerView() {}, workspaceFiles: files,
+    storage: { get: (key: string) => Promise.resolve(stored[key]), set: (key: string, value: unknown) => { stored[key] = value; return Promise.resolve(); } },
+    network: { request: ({ url }: { url: string }) => {
+      const parsed = new URL(url);
+      const id = parsed.pathname.split("/").at(-1)!;
+      if (id === failId) return Promise.reject(new Error("download failed"));
+      reads.push(id);
+      const content = remoteFiles[id].content;
+      const body = typeof content === "string" ? content : "";
+      const bytes = typeof content === "string" ? new TextEncoder().encode(content) : new Uint8Array(content);
+      return Promise.resolve({ status: 200, headers: {}, body, bodyBase64: btoa(String.fromCharCode(...bytes)) });
+    } },
+  } as unknown as PluginAPI;
+  const client = new WorkspaceDriveSync(api);
+  Object.defineProperty(client, "assertWorkspace", { value: () => Promise.resolve({ workspace }) });
+  Object.defineProperty(client, "tokens", { value: () => Promise.resolve({ accessToken: "token", rootFolderId: "root" }) });
+  Object.defineProperty(client, "state", { value: async () => ({
+    inventory: (await inventory()).filter(file => syncablePath(file.path)),
+    remote: { ...currentRemote, files: Object.fromEntries(Object.entries(currentRemote.files).filter(([, file]) => syncableDriveFile(file))) },
+  }) });
+  return { client, files, stored, contents, reads, writes, deleted, fail: (id: string) => { failId = id; } };
+}
+
+Deno.test("full pull skips hundreds of matching paths and adopts new Drive IDs", async () => {
+  const initial: Record<string, string> = { "changed.md": "local" };
+  const remoteFiles: Record<string, { path: string; content: string }> = { changed: { path: "changed.md", content: "remote" } };
+  for (let index = 0; index < 200; index++) {
+    initial[`notes/${index}.md`] = `body ${index}`;
+    remoteFiles[`new-${index}`] = { path: `notes/${index}.md`, content: `body ${index}` };
+  }
+  const test = forcePullFixture(initial, remoteFiles);
+  const result = await test.client.fullPull();
+  assertEquals(result, { created: 0, updated: 1, renamed: 0, deleted: 0, skipped: 200 });
+  assertEquals(test.reads, ["changed"]);
+  assertEquals(test.writes, ["changed.md"]);
+  const snapshot = test.stored.syncSnapshot as LocalSyncMeta;
+  assertEquals(snapshot.pathToId["notes/0.md"], "new-0");
+  assertEquals(snapshot.files.id, undefined);
+});
+
+Deno.test("full pull handles binary matches, missing checksums and new files", async () => {
+  const binary = new Uint8Array([0, 255, 128]).buffer;
+  const test = forcePullFixture({ "same.png": binary, "changed.png": new Uint8Array([1]).buffer, "no-hash.md": "same" }, {
+    same: { path: "same.png", content: binary }, changed: { path: "changed.png", content: binary },
+    nohash: { path: "no-hash.md", content: "same", checksum: false }, added: { path: "new.md", content: "new" },
+  });
+  const result = await test.client.fullPull();
+  assertEquals(result, { created: 1, updated: 2, renamed: 0, deleted: 0, skipped: 1 });
+  assertEquals(test.reads.sort(), ["added", "changed", "nohash"]);
+  assertEquals(test.contents.get("changed.png"), binary);
+});
+
+Deno.test("full pull requires delete consent and preserves excluded files", async () => {
+  const test = forcePullFixture({ "local-only.md": "delete", "KiokuFlow/private.md": "private", ".llm-hub/private.json": "private" }, {
+    note: { path: "note.md", content: "new" }, internal: { path: "KiokuFlow/private.md", content: "remote" },
+  });
+  await assertRejects(() => test.client.fullPull(), Error, "Confirm deletion");
+  assertEquals(test.reads, []);
+  const result = await test.client.fullPull(true);
+  assertEquals(result.deleted, 1);
+  assertEquals(test.deleted, ["local-only.md"]);
+  assertEquals(test.contents.get("KiokuFlow/private.md"), "private");
+  assertEquals(test.contents.get(".llm-hub/private.json"), "private");
+});
+
+Deno.test("failed full pull retains local-only files and the previous snapshot", async () => {
+  const test = forcePullFixture({ "local-only.md": "keep" }, { note: { path: "note.md", content: "new" } });
+  test.fail("note");
+  await assertRejects(() => test.client.fullPull(true), Error, "download failed");
+  assertEquals(test.deleted, []);
+  assertEquals(test.stored.syncSnapshot, baseline());
+});
+
+Deno.test("full pull matches case-insensitive Windows paths without downloads", async () => {
+  const test = forcePullFixture({ "Notes/a.md": "same" }, { note: { path: "notes/a.md", content: "same" } }, true);
+  assertEquals((await test.client.fullPull()).skipped, 1);
+  assertEquals(test.reads, []);
+  assertEquals(test.deleted, []);
+});
+
+Deno.test("workspace migration merges legacy files and overwrites binary collisions", async () => {
+  const old = new Uint8Array([0, 255, 128]).buffer;
+  const test = forcePullFixture({
+    "GemiHub/conflict-backups/same.png": old, "KiokuFlow/conflict-backups/same.png": "replace",
+    "GemiHub/drive-sync-meta.json": "tracking", "KiokuFlow/keep.md": "keep",
+  }, {});
+  const [first, second] = await Promise.all([workspaceInventory(test.files), workspaceInventory(test.files)]);
+  assertEquals(first, second);
+  assertEquals(test.contents.get("KiokuFlow/conflict-backups/same.png"), old);
+  assertEquals(test.contents.get("KiokuFlow/drive-sync-meta.json"), "tracking");
+  assertEquals(test.contents.get("KiokuFlow/keep.md"), "keep");
+  assertEquals([...test.contents.keys()].some(path => path.startsWith("GemiHub/")), false);
+  const writes = test.writes.length;
+  await workspaceInventory(test.files);
+  assertEquals(test.writes.length, writes);
+  assertEquals(syncablePath("KiokuFlow/conflict-backups/same.png"), false);
+  assertEquals(syncablePath("GemiHub/drive-sync-meta.json"), false);
+});
+
+Deno.test("workspace migration keeps the source when an overwrite fails and retries later", async () => {
+  const test = forcePullFixture({ "GemiHub/a.md": "legacy", "KiokuFlow/a.md": "current" }, {});
+  const update = test.files.update;
+  test.files.update = () => Promise.reject(new Error("write failed"));
+  await assertRejects(() => workspaceInventory(test.files), Error, "write failed");
+  assertEquals(test.contents.get("GemiHub/a.md"), "legacy");
+  assertEquals(test.contents.get("KiokuFlow/a.md"), "current");
+  test.files.update = update;
+  await workspaceInventory(test.files);
+  assertEquals(test.contents.get("KiokuFlow/a.md"), "legacy");
 });

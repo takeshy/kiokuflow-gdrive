@@ -1,4 +1,5 @@
 import { request } from "./transport";
+import { WORKSPACE_FOLDER, LEGACY_WORKSPACE_FOLDER } from "./workspace";
 import { createDriveClient, headersFromRecord, type DriveFile, type DriveHttpResponse } from "gemihub-sync-core/drive";
 import { buildConflictBackupName } from "gemihub-sync-core/conflict";
 import { isGoogleWorkspaceMimeType, isSyncExcludedPath } from "gemihub-sync-core/paths";
@@ -22,7 +23,7 @@ export function syncableDriveFile(file: Pick<DriveFile, "name" | "mimeType">): b
 
 /** Desktop keeps workspace state in `.llm-hub/`; everything else is the shared rule. */
 export function syncablePath(path: string): boolean {
-  return !isSyncExcludedPath(path, { extraSegments: [".llm-hub"] });
+  return !isSyncExcludedPath(path, { extraSegments: [".llm-hub"], extraPrefixes: [`${WORKSPACE_FOLDER}/`, `${LEGACY_WORKSPACE_FOLDER}/`] });
 }
 
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
