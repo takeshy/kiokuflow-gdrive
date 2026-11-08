@@ -19,7 +19,7 @@ kiokuflow Desktopのactive Workspace全体を、kiokuflowが利用するGoogle D
 
 サービス URL・OAuth・Drive の移行で認証先、ルート、ファイル ID が変わった場合は、旧接続・同期状態をコピーせず、移行完了後の kiokuflow で新しい同期トークンを生成して接続し直してください。除外設定は別途設定し、初回の Pull/Push 前に差分を確認してください。
 
-同期形式と共有依存ライブラリ `gemihub-sync-core` は維持しています。競合バックアップは `KiokuFlow/conflict-backups/` に保存します。同期チェック時に旧 `GemiHub/` の内容を `KiokuFlow/` へ自動移行し、同名ファイルは旧側の内容で上書きします。両フォルダは同期対象外です。差分表示設定の保存キーは維持しています。
+同期形式は維持し、共有依存ライブラリ名は `kiokuflow-sync-core` に更新しています。競合バックアップは `KiokuFlow/conflict-backups/` に保存します。同期チェック時に旧 `GemiHub/` の内容を `KiokuFlow/` へ自動移行し、同名ファイルは旧側の内容で上書きします。両フォルダは同期対象外です。差分表示設定の保存キーは維持しています。
 
 ## 動作
 

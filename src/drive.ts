@@ -1,15 +1,15 @@
 import { request } from "./transport";
 import { WORKSPACE_FOLDER, LEGACY_WORKSPACE_FOLDER } from "./workspace";
-import { createDriveClient, headersFromRecord, type DriveFile, type DriveHttpResponse } from "gemihub-sync-core/drive";
-import { buildConflictBackupName } from "gemihub-sync-core/conflict";
-import { isGoogleWorkspaceMimeType, isSyncExcludedPath } from "gemihub-sync-core/paths";
-import { reconcileSyncMetaWithListing, syncMetaFromDriveFiles } from "gemihub-sync-core/protocol";
-import { createSyncMetaStore } from "gemihub-sync-core/sync-meta";
+import { createDriveClient, headersFromRecord, type DriveFile, type DriveHttpResponse } from "kiokuflow-sync-core/drive";
+import { buildConflictBackupName } from "kiokuflow-sync-core/conflict";
+import { isGoogleWorkspaceMimeType, isSyncExcludedPath } from "kiokuflow-sync-core/paths";
+import { reconcileSyncMetaWithListing, syncMetaFromDriveFiles } from "kiokuflow-sync-core/protocol";
+import { createSyncMetaStore } from "kiokuflow-sync-core/sync-meta";
 import type { PluginAPI, SyncMeta } from "./types";
 
 // System names/folders, exclusion patterns and conflict names are shared with
-// kiokuflow web and Obsidian through gemihub-sync-core.
-export { SYNC_EXCLUDED_FILE_NAMES as SYSTEM_NAMES, SYNC_EXCLUDED_PREFIXES as SYSTEM_PREFIXES, isUserExcludedPath } from "gemihub-sync-core/paths";
+// kiokuflow web and Obsidian through kiokuflow-sync-core.
+export { SYNC_EXCLUDED_FILE_NAMES as SYSTEM_NAMES, SYNC_EXCLUDED_PREFIXES as SYSTEM_PREFIXES, isUserExcludedPath } from "kiokuflow-sync-core/paths";
 
 export type { DriveFile };
 
@@ -95,7 +95,7 @@ export function ensureFolder(api: PluginAPI, accessToken: string, rootFolderId: 
   return driveClient(api).ensureSubFolder(accessToken, rootFolderId, name);
 }
 
-/** Shared, reversible conflict backup name (gemihub-sync-core/conflict). */
+/** Shared, reversible conflict backup name (kiokuflow-sync-core/conflict). */
 export function conflictBackupName(path: string, now = new Date()): string {
   return buildConflictBackupName(path, now);
 }

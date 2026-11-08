@@ -6,7 +6,7 @@ import {
   needsTokenRefresh,
   parseEncryptedAuthFile,
   parseTokenRefreshResponse,
-} from "gemihub-sync-core/auth";
+} from "kiokuflow-sync-core/auth";
 import { request } from "./transport";
 import type { PluginAPI, Workspace } from "./types";
 
@@ -21,7 +21,7 @@ export interface StoredConnection {
 export interface Session { accessToken: string; refreshToken: string; apiOrigin: string; rootFolderId: string; expiryTime: number }
 
 // Token, _encrypted-auth.json and refresh formats are shared with kiokuflow web
-// and Obsidian (gemihub-sync-core/auth); only the transport lives here.
+// and Obsidian (kiokuflow-sync-core/auth); only the transport lives here.
 export { decodeMigrationToken };
 
 async function driveJSON(api: PluginAPI, url: string, accessToken: string): Promise<unknown> {

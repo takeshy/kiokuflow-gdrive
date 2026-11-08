@@ -1,7 +1,7 @@
 import { createConnection, refreshSession, unlockConnection, type Session, type StoredConnection } from "./auth";
 import { conflictBackupName, createRemote, ensureFolder, isUserExcludedPath, listRootFiles, metaFromFiles, moveRemote, readRemote, readSyncMeta, renameRemote, syncablePath, updateRemote, writeSyncMeta } from "./drive";
-import { guessMimeType, shouldTreatAsBinaryFile } from "gemihub-sync-core/files";
-import { duplicateRemotePaths as coreDuplicateRemotePaths, syncMetaSnapshotChanged } from "gemihub-sync-core/protocol";
+import { guessMimeType, shouldTreatAsBinaryFile } from "kiokuflow-sync-core/files";
+import { duplicateRemotePaths as coreDuplicateRemotePaths, syncMetaSnapshotChanged } from "kiokuflow-sync-core/protocol";
 import type { ConflictInfo, FileSyncMeta, LocalSyncMeta, PluginAPI, Workspace, WorkspaceFile, SyncMeta, SyncProgress, SyncStatus, SyncSummary, WorkspaceFilesAPI } from "./types";
 import { BACKUP_DIRECTORY, WORKSPACE_FOLDER, workspaceInventory } from "./workspace";
 
@@ -9,7 +9,7 @@ const CONNECTION_KEY = "connection";
 const SNAPSHOT_KEY = "syncSnapshot";
 export const EXCLUDE_PATTERNS_KEY = "excludePatterns";
 // Text/binary classification and MIME types come from the table shared with
-// kiokuflow web and Obsidian (gemihub-sync-core/files).
+// kiokuflow web and Obsidian (kiokuflow-sync-core/files).
 export function isTextPath(path: string): boolean { return !shouldTreatAsBinaryFile(path); }
 
 export function isBinaryPath(path: string): boolean { return shouldTreatAsBinaryFile(path); }

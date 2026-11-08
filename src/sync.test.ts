@@ -4,7 +4,7 @@ import { assertCurrentDuplicate, duplicateRemoteGroups, DuplicateRemoteError, Wo
 import { isGoogleWorkspaceFile, reconcileSyncMeta, syncableDriveFile, syncablePath } from "./drive.ts";
 import type { HTTPResponse, PluginAPI, LocalSyncMeta, WorkspaceFile, SyncMeta } from "./types.ts";
 
-import { md5Hash } from "gemihub-sync-core/hash";
+import { md5Hash } from "kiokuflow-sync-core/hash";
 import { workspaceInventory } from "./workspace.ts";
 
 const local = (path: string, md5: string): WorkspaceFile => ({ path, md5, size: 1, createdTime: 0, modTime: 0, binary: false });

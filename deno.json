@@ -1,14 +1,14 @@
 {
   "imports": {
-    "gemihub-sync-core": "./node_modules/gemihub-sync-core/dist/index.js",
-    "gemihub-sync-core/protocol": "./node_modules/gemihub-sync-core/dist/protocol/index.js",
-    "gemihub-sync-core/paths": "./node_modules/gemihub-sync-core/dist/paths/index.js",
-    "gemihub-sync-core/files": "./node_modules/gemihub-sync-core/dist/files/index.js",
-    "gemihub-sync-core/conflict": "./node_modules/gemihub-sync-core/dist/conflict/index.js",
-    "gemihub-sync-core/crypto": "./node_modules/gemihub-sync-core/dist/crypto/index.js",
-    "gemihub-sync-core/auth": "./node_modules/gemihub-sync-core/dist/auth/index.js",
-    "gemihub-sync-core/hash": "./node_modules/gemihub-sync-core/dist/hash/index.js",
-    "gemihub-sync-core/drive": "./node_modules/gemihub-sync-core/dist/drive/index.js",
-    "gemihub-sync-core/sync-meta": "./node_modules/gemihub-sync-core/dist/sync-meta/index.js"
+    "kiokuflow-sync-core": "./node_modules/kiokuflow-sync-core/dist/index.js",
+    "kiokuflow-sync-core/protocol": "./node_modules/kiokuflow-sync-core/dist/protocol/index.js",
+    "kiokuflow-sync-core/paths": "./node_modules/kiokuflow-sync-core/dist/paths/index.js",
+    "kiokuflow-sync-core/files": "./node_modules/kiokuflow-sync-core/dist/files/index.js",
+    "kiokuflow-sync-core/conflict": "./node_modules/kiokuflow-sync-core/dist/conflict/index.js",
+    "kiokuflow-sync-core/crypto": "./node_modules/kiokuflow-sync-core/dist/crypto/index.js",
+    "kiokuflow-sync-core/auth": "./node_modules/kiokuflow-sync-core/dist/auth/index.js",
+    "kiokuflow-sync-core/hash": "./node_modules/kiokuflow-sync-core/dist/hash/index.js",
+    "kiokuflow-sync-core/drive": "./node_modules/kiokuflow-sync-core/dist/drive/index.js",
+    "kiokuflow-sync-core/sync-meta": "./node_modules/kiokuflow-sync-core/dist/sync-meta/index.js"
   }
 }
